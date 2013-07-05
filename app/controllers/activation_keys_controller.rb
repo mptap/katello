@@ -85,6 +85,9 @@ class ActivationKeysController < ApplicationController
     all_pools = retrieve_all_pools
     available_pools = retrieve_available_pools(all_pools).sort
 
+    products = @activation_key.content_view ? @activation_key.content_view.products(@environment) : @environment.products
+    available_pools = available_pools.select { |pool| products.any? { |products| products.name == pool[:product_name] } }
+
     render :partial=>"available_subscriptions",
            :locals => {:akey => @activation_key, :editable => ActivationKey.manageable?(current_organization),
                        :available_subs => available_pools}
