@@ -127,6 +127,8 @@ class ActivationKeysController < ApplicationController
   def add_subscriptions
     if params.key? :subscription_id
       params[:subscription_id].keys.each do |pool|
+        @activation_key.add_pools(pool)
+=begin
         kt_pool = ::Pool.where(:cp_id => pool)[0]
 
         if kt_pool.nil?
@@ -134,6 +136,7 @@ class ActivationKeysController < ApplicationController
         else
           KeyPool.create!(:activation_key_id => @activation_key.id, :pool_id => kt_pool.id)
         end
+=end
       end
     end
     notify.success _("Subscriptions successfully added to Activation Key '%s'.") % @activation_key.name
@@ -143,6 +146,8 @@ class ActivationKeysController < ApplicationController
   def remove_subscriptions
     if params.key? :subscription_id
       params[:subscription_id].keys.each do |pool|
+        @activation_key.remove_pools(pool)
+=begin
         kt_pool = Pool.where(:cp_id => pool)[0]
 
         if kt_pool
@@ -152,6 +157,7 @@ class ActivationKeysController < ApplicationController
             key_sub.destroy
           end
         end
+=end
       end
     end
     notify.success _("Subscriptions successfully removed from Activation Key '%s'.") % @activation_key.name
@@ -230,7 +236,7 @@ class ActivationKeysController < ApplicationController
     end
     notify.success _("Activation key '%s' was created.") % @activation_key['name']
 
-    if search_validate(ActivationKey, @activation_key.id, params[:search])
+    if search_validate(ActivationKey, @activation_key.cp_id, params[:search])
       render :partial => "list_activation_keys", :locals => {:collection => [@activation_key]}
     else
       notify.message _("'%s' did not meet the current search criteria and is not being shown.") % @activation_key["name"]
@@ -249,7 +255,7 @@ class ActivationKeysController < ApplicationController
 
     notify.success _("Activation key '%s' was updated.") % @activation_key["name"]
 
-    if !search_validate(ActivationKey, @activation_key.id, params[:search])
+    if !search_validate(ActivationKey, @activation_key.cp_id, params[:search])
       notify.message _("'%s' no longer matches the current search criteria.") % @activation_key["name"]
     end
 
@@ -260,14 +266,14 @@ class ActivationKeysController < ApplicationController
     if @activation_key.destroy
       notify.success _("Activation key '%s' was deleted.") % @activation_key[:name]
       #render and do the removal in one swoop!
-      render :partial => "common/list_remove", :locals => {:id => params[:id], :name => controller_display_name}
+      render :partial => "common/list_remove", :locals => {:cp_id => params[:cp_id], :name => controller_display_name}
     end
   end
 
   protected
 
   def find_activation_key
-    @activation_key = ActivationKey.find(params[:id])
+    @activation_key = ActivationKey.find(params[:cp_id])
   end
 
   def find_environment
@@ -301,7 +307,7 @@ class ActivationKeysController < ApplicationController
     available_pools = all_pools.clone
 
     # remove pools that have been consumed from the list
-    consumed = @activation_key.pools
+    consumed = @activation_key.get_key_pools
     consumed.each do |pool|
       available_pools.delete(pool.cp_id)
     end
@@ -314,7 +320,7 @@ class ActivationKeysController < ApplicationController
   # in the array is for a pool and the elements of the hash are details for that pool
   def retrieve_applied_pools(all_pools)
     applied_pools = {}
-    @activation_key.pools.each do |pool|
+    @activation_key.get_key_pools.each do |pool|
       applied_pools[pool.product_name] ||= []
       applied_pools[pool.product_name] << pool
     end
@@ -336,7 +342,8 @@ class ActivationKeysController < ApplicationController
 
     all_pools = {}
 
-    cp_pools = Resources::Candlepin::Owner.pools current_organization.label
+    cp_pools = @activation_key.get_pools
+
     if cp_pools
       # Pool objects
       pools = cp_pools.collect{|cp_pool| ::Pool.find_pool(cp_pool['id'], cp_pool)}

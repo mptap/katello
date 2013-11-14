@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130726210956) do
+ActiveRecord::Schema.define(:version => 20131115190719) do
 
   create_table "activation_keys", :force => true do |t|
     t.string   "name"
@@ -23,9 +23,11 @@ ActiveRecord::Schema.define(:version => 20130726210956) do
     t.integer  "user_id"
     t.integer  "usage_limit",     :default => -1
     t.integer  "content_view_id"
+    t.string   "cp_id"
   end
 
   add_index "activation_keys", ["content_view_id"], :name => "index_activation_keys_on_content_view_id"
+  add_index "activation_keys", ["cp_id"], :name => "index_activation_keys_on_cp_id"
   add_index "activation_keys", ["environment_id"], :name => "index_activation_keys_on_environment_id"
   add_index "activation_keys", ["name", "organization_id"], :name => "index_activation_keys_on_name_and_organization_id", :unique => true
   add_index "activation_keys", ["organization_id"], :name => "index_activation_keys_on_organization_id"
@@ -305,6 +307,7 @@ ActiveRecord::Schema.define(:version => 20130726210956) do
   create_table "key_pools", :force => true do |t|
     t.integer "activation_key_id"
     t.integer "pool_id"
+    t.integer "quantity",          :default => 0
   end
 
   add_index "key_pools", ["activation_key_id"], :name => "index_key_pools_on_activation_key_id"

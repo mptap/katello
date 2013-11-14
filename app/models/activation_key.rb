@@ -12,6 +12,8 @@
 
 class ActivationKey < ActiveRecord::Base
 
+  include Glue if Katello.config.use_cp
+  include Glue::Candlepin::ActivationKey if Katello.config.use_cp
   include Glue::ElasticSearch::ActivationKey if Katello.config.use_elasticsearch
   include Authorization::ActivationKey
 
@@ -20,8 +22,8 @@ class ActivationKey < ActiveRecord::Base
   belongs_to :user, :inverse_of => :activation_keys
   belongs_to :content_view, :inverse_of => :activation_keys
 
-  has_many :key_pools, :dependent => :destroy
-  has_many :pools, :class_name => "::Pool", :through => :key_pools
+  #has_many :key_pools, :dependent => :destroy
+  #has_many :pools, :class_name => "::Pool", :through => :key_pools
 
   has_many :key_system_groups, :dependent => :destroy
   has_many :system_groups, :through => :key_system_groups
@@ -29,7 +31,7 @@ class ActivationKey < ActiveRecord::Base
   has_many :system_activation_keys, :dependent => :destroy
   has_many :systems, :through => :system_activation_keys
 
-  after_find :validate_pools
+  #after_find :validate_pools
 
   before_validation :set_default_content_view, :unless => :persisted?
   validates_with Validators::KatelloNameFormatValidator, :attributes => :name
@@ -157,6 +159,7 @@ class ActivationKey < ActiveRecord::Base
 
   # Fetch each of the pools from candlepin, removing any that no longer
   # exist (eg. from loss of a Virtual Guest pool)
+=begin
   def validate_pools
     obsolete_pools = []
     self.pools.each do |pool|
@@ -172,5 +175,5 @@ class ActivationKey < ActiveRecord::Base
       self.save!
     end
   end
-
+=end
 end
